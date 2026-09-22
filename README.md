@@ -1,32 +1,31 @@
-# Invesment Jurnal Vano V4
+# Invesment Jurnal Vano V5
 
-## Yang sudah ada
-- PWA-ready: `manifest.json` + `sw.js`
-- Portfolio BTC real-time dari Bitget
-- Jurnal transaksi dan perhitungan P/L
-- Alert P/L terhadap modal USD: -15%, -10%, +10%, +15%, +30%, +50%, +100%, +200%
-- Custom price levels
-- Notification API saat browser/app dapat menjalankan JavaScript
-- Fondasi push notification melalui service worker
-- Fondasi Supabase cloud sync
-- Schema database: `supabase-schema.sql`
+V5 menambahkan login Supabase dan sinkronisasi dua arah HP ↔ laptop.
 
-## Penting tentang notifikasi saat aplikasi benar-benar tertutup
-Browser tidak menjamin JavaScript halaman berjalan terus ketika PWA ditutup. Untuk notifikasi background yang benar-benar berjalan saat HP tidak membuka jurnal, perlu:
-1. Supabase Auth
-2. tabel push subscription
-3. VAPID key
-4. backend/Edge Function terjadwal yang mengambil harga BTC dan mengirim Web Push
-5. scheduler/cron
+## 1. Supabase
+Buka SQL Editor lalu jalankan SELURUH isi `supabase-schema.sql`.
 
-V4 ini sengaja tidak menanam secret/VAPID key ke frontend.
+Auth > Providers > Email harus Enabled.
 
-## Cara memakai sekarang
-1. Host folder ini pada HTTPS (GitHub Pages, Vercel, Netlify, atau hosting lain).
-2. Buka dari Chrome Android.
-3. Pilih Add to Home Screen.
-4. Tekan Aktifkan notifikasi.
-5. Untuk cloud sync, buat project Supabase, jalankan `supabase-schema.sql`, lalu masukkan Project URL + anon key pada Pengaturan.
+## 2. GitHub
+Ganti file `index.html`, `manifest.json`, dan `sw.js` di repository dengan file V5 ini.
+Ganti juga `supabase-schema.sql` bila ingin menyimpan schema terbaru.
+
+## 3. Login
+Di HP:
+- buka GitHub Pages
+- daftar/login dengan email dan password yang sama
+- setelah login tekan `Sync sekarang`
+
+Di laptop:
+- buka URL GitHub Pages yang sama
+- login dengan akun yang sama
+- tekan `Sync sekarang`
+
+Transaksi dari cloud akan muncul di kedua perangkat.
 
 ## Catatan keamanan
-Jangan memasukkan Supabase service-role key ke file HTML. Frontend hanya boleh menggunakan anon/publishable key dengan RLS aktif.
+`sb_publishable_...` boleh digunakan di browser. Jangan pernah memasukkan secret/service_role key ke `index.html`, GitHub, atau chat.
+
+## Catatan notifikasi
+V5 mempertahankan notifikasi browser saat halaman aktif. Push background yang benar-benar berjalan ketika halaman ditutup membutuhkan Web Push/VAPID + backend scheduler; itu tahap terpisah.
