@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b0f14">
+<link rel="manifest" href="manifest.json">
+<title>Invesment Jurnal Vano V4</title>
+<style>
+:root{--bg:#0b0f14;--panel:#121820;--panel2:#18212c;--text:#edf2f7;--muted:#93a1b2;--line:#263342;--accent:#f2b84b;--green:#48d597;--red:#ff6b6b}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#0b0f14,#111923);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
+.container{max-width:1200px;margin:auto;padding:22px 16px 60px}.top{display:flex;justify-content:space-between;gap:16px;align-items:end;margin-bottom:18px}h1{margin:0;font-size:28px}.sub{color:var(--muted);font-size:13px;margin-top:5px}.live{color:var(--green);font-size:13px;white-space:nowrap}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.panel{background:rgba(18,24,32,.96);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px}
+h2{font-size:16px;margin:0 0 13px}.form{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}
+input,button{font:inherit}input{width:100%;background:#0c1219;border:1px solid #2a3848;color:var(--text);border-radius:9px;padding:10px}input:focus{outline:none;border-color:var(--accent)}
+.full{grid-column:1/-1}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}button{border:0;border-radius:9px;padding:9px 12px;cursor:pointer;background:var(--accent);color:#17120a;font-weight:700}button.secondary{background:#202b38;color:var(--text);border:1px solid #344354}button.danger{background:#3a2024;color:#ffb3b3;border:1px solid #613238}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.stat{background:#0d141c;border:1px solid var(--line);border-radius:10px;padding:11px}.stat span{display:block;color:var(--muted);font-size:10px;margin-bottom:4px}.stat b{font-size:16px}
+.green{color:var(--green)}.red{color:var(--red)}.note{font-size:11px;line-height:1.5;color:var(--muted);margin-top:10px}.status{font-size:11px;margin-top:8px}.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.level{background:#0d141c;border:1px solid var(--line);padding:10px;border-radius:10px}.level b{display:block}.level small{color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:11px;min-width:1000px}th,td{padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:right}th{color:var(--muted)}th:first-child,td:first-child{text-align:left}.tablewrap{overflow:auto}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.form{grid-template-columns:1fr}.full{grid-column:auto}.levels{grid-template-columns:1fr 1fr}.top{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="top"><div><h1>BTC Investment Journal V4</h1><div class="sub">Portfolio, target P/L, level harga, cloud sync, dan notifikasi.</div></div><div class="live" id="liveStatus">● menghubungkan BTC...</div></div>
+
+<div class="grid">
+<section class="panel">
+<h2>Tambah Transaksi</h2>
+<div class="form">
+<div><label>Tanggal</label><input id="date" type="date"></div>
+<div><label>Modal IDR</label><input id="idr" type="number" min="0" step="1"></div>
+<div><label>USD diterima BTC</label><input id="usd" type="number" min="0" step="0.00000001"></div>
+<div><label>BTC diterima</label><input id="btc" type="number" min="0" step="0.000000000001"></div>
+<div class="full"><label>Catatan</label><input id="note" maxlength="120"></div>
+</div>
+<div class="actions"><button onclick="addTransaction()">Simpan transaksi</button><button class="secondary" onclick="resetForm()">Reset</button></div>
+<div class="note">Fee/selisih = modal USD hasil kurs historis − USD yang diterima BTC. Negatif tetap diperbolehkan.</div>
+</section>
+
+<section class="panel">
+<h2>Portfolio</h2>
+<div class="stats">
+<div class="stat"><span>Modal IDR</span><b id="sIdr">Rp0</b></div><div class="stat"><span>Modal USD</span><b id="sModal">$0</b></div>
+<div class="stat"><span>Total BTC</span><b id="sBtc">0 BTC</b></div><div class="stat"><span>Average all-in</span><b id="sAvg">$0</b></div>
+<div class="stat"><span>BTC sekarang</span><b id="sNow">$0</b></div><div class="stat"><span>Nilai portfolio</span><b id="sValue">$0</b></div>
+<div class="stat"><span>P/L</span><b id="sPnl">$0</b></div><div class="stat"><span>Return</span><b id="sReturn">0%</b></div>
+</div>
+<div class="actions"><button onclick="requestNotifications()">Aktifkan notifikasi</button><button class="secondary" onclick="syncCloud()">Sync cloud</button><button class="secondary" onclick="openSettings()">Pengaturan</button></div>
+<div class="status" id="syncStatus">Cloud: belum dikonfigurasi</div>
+</section>
+</div>
+
+<section class="panel">
+<h2>Level Harga Penting</h2>
+<div class="levels" id="levels"></div>
+<div class="note">Level otomatis memakai average all-in: -15%, -10%, +10%, +15%, +30%, +50%, +100%, +200%. Kamu juga bisa menambah level harga BTC absolut di Pengaturan.</div>
+</section>
+
+<section class="panel">
+<h2>Alert</h2>
+<div class="note">Alert P/L dihitung terhadap modal USD total. Sistem mencegah alert yang sama berulang-ulang sampai harga keluar lalu masuk lagi ke level tersebut.</div>
+<div id="alertList" class="note"></div>
+</section>
+
+<section class="panel">
+<h2>Jurnal Transaksi</h2>
+<div class="tablewrap"><table><thead><tr><th>Tanggal</th><th>Modal IDR</th><th>Kurs</th><th>Modal USD</th><th>USD BTC</th><th>BTC</th><th>Harga BTC</th><th>Fee</th><th>All-in</th><th>Nilai</th><th>P/L</th><th></th></tr></thead><tbody id="tbody"></tbody></table></div>
+</section>
+
+<section class="panel" id="settingsPanel" style="display:none">
+<h2>Pengaturan Cloud & Alert</h2>
+<div class="form">
+<div class="full"><label>Supabase Project URL</label><input id="sbUrl" placeholder="https://xxxx.supabase.co"></div>
+<div class="full"><label>Supabase Anon Key</label><input id="sbKey" placeholder="eyJ..."></div>
+<div><label>Harga custom 1</label><input id="custom1" type="number" placeholder="100000"></div>
+<div><label>Harga custom 2</label><input id="custom2" type="number" placeholder="150000"></div>
+<div><label>Harga custom 3</label><input id="custom3" type="number" placeholder="200000"></div>
+</div>
+<div class="actions"><button onclick="saveSettings()">Simpan pengaturan</button><button class="secondary" onclick="testNotification()">Tes notifikasi</button></div>
+<div class="note">Untuk sinkronisasi lintas perangkat, setiap perangkat perlu memakai akun/user yang sama. V4 menyediakan fondasi Supabase; kredensial proyek tidak disertakan di file ini.</div>
+</section>
+</div>
+
+<script>
+const KEY='btcInvestmentJournalV4';
+const SET='btcInvestmentJournalSettingsV4';
+let txs=JSON.parse(localStorage.getItem(KEY)||'[]'), settings=JSON.parse(localStorage.getItem(SET)||'{}');
+let liveBTC=0,fxCache={},lastAlertState=JSON.parse(localStorage.getItem('btcAlertStateV4')||'{}');
+const $=id=>document.getElementById(id);
+const fmtIDR=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n||0);
+const fmtUSD=n=>'$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:8});
+const fmtBTC=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:12})+' BTC';
+const pct=n=>(Number(n||0)*100).toFixed(2)+'%';
+function save(){localStorage.setItem(KEY,JSON.stringify(txs));render()}
+function resetForm(){ $('date').value=new Date().toISOString().slice(0,10);['idr','usd','btc','note'].forEach(id=>$(id).value='') }
+function saveSettings(){settings={url:$('sbUrl').value.trim(),key:$('sbKey').value.trim(),custom:[1,2,3].map(i=>Number($('custom'+i).value)||0).filter(Boolean)};localStorage.setItem(SET,JSON.stringify(settings));$('syncStatus').textContent=settings.url?'Cloud: konfigurasi tersimpan':'Cloud: belum dikonfigurasi';closeSettings();renderLevels()}
+function openSettings(){$('settingsPanel').style.display='block';$('sbUrl').value=settings.url||'';$('sbKey').value=settings.key||'';(settings.custom||[]).slice(0,3).forEach((v,i)=>$('custom'+(i+1)).value=v)}
+function closeSettings(){$('settingsPanel').style.display='none'}
+async function getJSON(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);return r.json()}
+async function getFX(date){if(fxCache[date])return fxCache[date];for(let i=0;i<=7;i++){let d=new Date(date+'T12:00:00');d.setDate(d.getDate()-i);let ds=d.toISOString().slice(0,10);for(const u of [`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${ds}/v1/currencies/usd.json`,`https://${ds}.currency-api.pages.dev/v1/currencies/usd.json`]){try{let j=await getJSON(u),rate=Number(j?.usd?.idr);if(rate>0)return fxCache[date]={rate,sourceDate:j.date||ds}}catch(e){}}}throw Error('Kurs historis tidak tersedia')}
+async function addTransaction(){let date=$('date').value,idr=+$('idr').value,usd=+$('usd').value,btc=+$('btc').value;if(!date||idr<=0||usd<=0||btc<=0)return alert('Lengkapi data transaksi.');try{let f=await getFX(date),modalUSD=idr/f.rate;txs.push({id:crypto.randomUUID(),date,idr,modalUSD,usd,btc,fx:f.rate,fxSourceDate:f.sourceDate,fee:modalUSD-usd,note:$('note').value.trim()});txs.sort((a,b)=>a.date.localeCompare(b.date));save();resetForm();await syncCloud()}catch(e){alert(e.message)}}
+function removeTx(id){txs=txs.filter(x=>x.id!==id);save();syncCloud()}
+function calc(){let modalIDR=txs.reduce((a,x)=>a+x.idr,0),modalUSD=txs.reduce((a,x)=>a+x.modalUSD,0),btc=txs.reduce((a,x)=>a+x.btc,0),value=btc*liveBTC,pnl=value-modalUSD;return{modalIDR,modalUSD,btc,value,pnl,ret:modalUSD?pnl/modalUSD:0,avg:btc?modalUSD/btc:0}}
+function render(){let c=calc();$('sIdr').textContent=fmtIDR(c.modalIDR);$('sModal').textContent=fmtUSD(c.modalUSD);$('sBtc').textContent=fmtBTC(c.btc);$('sAvg').textContent=fmtUSD(c.avg);$('sNow').textContent=fmtUSD(liveBTC);$('sValue').textContent=fmtUSD(c.value);$('sPnl').textContent=fmtUSD(c.pnl);$('sPnl').className=c.pnl>=0?'green':'red';$('sReturn').textContent=pct(c.ret);$('sReturn').className=c.ret>=0?'green':'red';renderLevels();renderAlerts();renderTable()}
+function renderLevels(){let c=calc(), arr=[-15,-10,10,15,30,50,100,200].map(p=>({p,price:c.avg*(1+p/100)}));(settings.custom||[]).forEach(price=>arr.push({p:null,price}));$('levels').innerHTML=arr.map(x=>`<div class="level"><small>${x.p===null?'CUSTOM':(x.p>0?'+':'')+x.p+'% P/L'}</small><b>${fmtUSD(x.price)}</b></div>`).join('')}
+function renderAlerts(){let c=calc();let lines=[];[-15,-10,10,15,30,50,100,200].forEach(p=>{let hit=c.ret*100>=p;if(p<0)hit=c.ret*100<=p;lines.push(`<div>${hit?'● TERPENUHI':'○'} P/L ${p>0?'+':''}${p}% → ${fmtUSD(c.avg*(1+p/100))}</div>`)});(settings.custom||[]).forEach(p=>lines.push(`<div>${liveBTC>=p?'● TERPENUHI':'○'} BTC ${fmtUSD(p)}</div>`));$('alertList').innerHTML=lines.join('')}
+function renderTable(){let tb=$('tbody');if(!txs.length){tb.innerHTML='<tr><td colspan="12">Belum ada transaksi.</td></tr>';return}tb.innerHTML=txs.map(x=>{let value=x.btc*liveBTC,pnl=value-x.modalUSD;return `<tr><td>${x.date}</td><td>${fmtIDR(x.idr)}</td><td>${fmtIDR(x.fx)}</td><td>${fmtUSD(x.modalUSD)}</td><td>${fmtUSD(x.usd)}</td><td>${x.btc.toFixed(12)}</td><td>${fmtUSD(x.usd/x.btc)}</td><td>${fmtUSD(x.fee)}</td><td>${fmtUSD(x.modalUSD/x.btc)}</td><td>${fmtUSD(value)}</td><td class="${pnl>=0?'green':'red'}">${fmtUSD(pnl)}</td><td><button class="danger" onclick="removeTx('${x.id}')">×</button></td></tr>`}).join('')}
+async function fetchBTC(){try{let j=await getJSON('https://api.bitget.com/api/v3/market/tickers?category=SPOT&symbol=BTCUSDT');liveBTC=+j.data?.[0]?.lastPrice||0;$('liveStatus').textContent='● BTC live: '+fmtUSD(liveBTC);render();checkAlerts()}catch(e){$('liveStatus').textContent='● BTC live gagal'}}
+async function requestNotifications(){if(!('Notification'in window))return alert('Browser ini tidak mendukung Notification API.');let p=await Notification.requestPermission();if(p==='granted'){await registerPush();new Notification('BTC Journal',{body:'Notifikasi BTC aktif.'})}else alert('Izin notifikasi ditolak oleh browser.')}
+async function registerPush(){if(!('serviceWorker'in navigator))return;try{await navigator.serviceWorker.register('sw.js')}catch(e){}}
+function testNotification(){if(Notification.permission==='granted')new Notification('BTC Journal — Tes',{body:`BTC ${fmtUSD(liveBTC)} • P/L ${pct(calc().ret)}`});else requestNotifications()}
+function checkAlerts(){let c=calc(),r=c.ret*100;[-15,-10,10,15,30,50,100,200].forEach(p=>{let hit=p<0?r<=p:r>=p,key='p'+p;if(hit&&!lastAlertState[key]){notify(`P/L ${p>0?'+':''}${p}% tercapai`,`BTC ${fmtUSD(liveBTC)} • P/L ${pct(c.ret)}`);lastAlertState[key]=true}else if(!hit)lastAlertState[key]=false});(settings.custom||[]).forEach((price,i)=>{let key='c'+i,hit=liveBTC>=price;if(hit&&!lastAlertState[key]){notify(`BTC mencapai ${fmtUSD(price)}`,`BTC ${fmtUSD(liveBTC)} • P/L ${pct(c.ret)}`);lastAlertState[key]=true}else if(!hit)lastAlertState[key]=false});localStorage.setItem('btcAlertStateV4',JSON.stringify(lastAlertState))}
+function notify(title,body){if(Notification.permission==='granted')new Notification('BTC Journal — '+title,{body})}
+async function syncCloud(){if(!settings.url||!settings.key){$('syncStatus').textContent='Cloud: belum dikonfigurasi';return}try{let h={apikey:settings.key,Authorization:'Bearer '+settings.key,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'};for(const x of txs){await fetch(settings.url+'/rest/v1/btc_transactions?on_conflict=id',{method:'POST',headers:h,body:JSON.stringify({id:x.id,date:x.date,idr:x.idr,modal_usd:x.modalUSD,usd:x.usd,btc:x.btc,fx:x.fx,fx_source_date:x.fxSourceDate,fee:x.fee,note:x.note})})}$('syncStatus').textContent='Cloud: tersinkronisasi '+new Date().toLocaleTimeString('id-ID')}catch(e){$('syncStatus').textContent='Cloud: gagal sync'}}
+resetForm();render();registerPush();fetchBTC();setInterval(fetchBTC,15000);
+</script>
+</body></html>
